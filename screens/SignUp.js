@@ -1,50 +1,65 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, Image } from 'react-native';
-import { db, ref, set } from './firebaseConfig';
+import { db } from '../firebaseConfig';
+import { ref, set } from 'firebase/database';
+import { useNavigation } from '@react-navigation/native';
 
-const AddDataScreen = () => {
-  const [id, setId] = useState('');
+const SignUpScreen = () => {
+  const navigation = useNavigation();
+  const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [age, setAge] = useState('');
+  const [password, setPassword] = useState('');
 
-  const addDataToRealtimeDatabase = async () => {
-    if (!id.trim() || !firstName.trim() || !lastName.trim() || !age.trim()) {
+  const signUpUser = async () => {
+    if (!email.trim() || !firstName.trim() || !lastName.trim() || !password.trim()) {
       Alert.alert('Oops!', 'Please fill in all fields 💡');
       return;
     }
+
     try {
-      await set(ref(db, 'users/' + id), {
-        id,
+      const userId = email.replace(/[@.]/g, '_');
+
+      await set(ref(db, 'users/' + userId), {
+        email,
         firstName,
         lastName,
-        age: parseInt(age, 10),
+        password,
         createdAt: new Date().toISOString(),
       });
 
-      Alert.alert('Success 🎉', 'Data added successfully!');
-      setId('');
+      Alert.alert('Success 🎉', 'User signed up successfully!');
+      setEmail('');
       setFirstName('');
       setLastName('');
-      setAge('');
+      setPassword('');
+      navigation.navigate('Sign In');
     } catch (error) {
-      console.error('Error adding document: ', error);
-      Alert.alert('Error ❌', 'Failed to add data');
+      console.error('Error signing up user: ', error);
+      Alert.alert('Error ❌', 'Failed to sign up');
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>👩‍💻 Add User Info</Text>
+      {/* Logo Image */}
+      <Image
+        source={require('../assets/icon.png')}
+        style={styles.logo}
+        resizeMode="contain"
+      />
+
+      <Text style={styles.header}>Sign Up</Text>
 
       <View style={styles.card}>
-        <Text style={styles.label}>ID</Text>
+        <Text style={styles.label}>Email</Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter ID"
-          value={id}
-          onChangeText={setId}
-          keyboardType="numeric"
+          placeholder="Enter Email"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
         />
 
         <Text style={styles.label}>First Name</Text>
@@ -63,17 +78,18 @@ const AddDataScreen = () => {
           onChangeText={setLastName}
         />
 
-        <Text style={styles.label}>Age</Text>
+        <Text style={styles.label}>Password</Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter Age"
-          value={age}
-          onChangeText={setAge}
-          keyboardType="numeric"
+          placeholder="Enter Password"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+
         />
 
-        <TouchableOpacity style={styles.button} onPress={addDataToRealtimeDatabase}>
-          <Text style={styles.buttonText}>➕ Add Data</Text>
+        <TouchableOpacity style={styles.button} onPress={signUpUser}>
+          <Text style={styles.buttonText}>Submit</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -83,16 +99,22 @@ const AddDataScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF5EC',
+    backgroundColor: '#f3f4f6',
     padding: 20,
     justifyContent: 'center',
+  },
+  logo: {
+    width: 120,
+    height: 120,
+    alignSelf: 'center',
+    marginBottom: 10,
   },
   header: {
     fontSize: 28,
     textAlign: 'center',
     fontWeight: 'bold',
     marginBottom: 30,
-    color: '#FF6B81',
+    color: '#00a568',
   },
   card: {
     backgroundColor: '#ffffff',
@@ -138,4 +160,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AddDataScreen;
+export default SignUpScreen;
