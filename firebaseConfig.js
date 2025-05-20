@@ -1,7 +1,7 @@
 // firebaseConfig.js
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
-import { getDatabase, ref, set, push, serverTimestamp } from "firebase/database";
+import { getDatabase, ref, set, push, serverTimestamp, onValue, update } from "firebase/database";
 
 // Firebase Config - Palitan ito ng config mula sa Firebase Console
 const firebaseConfig = {
@@ -22,4 +22,4 @@ const auth = getAuth(app);
 auth.languageCode = 'english';
 const db = getDatabase(app);
 
-export { db, ref, set, push, serverTimestamp };
+export { db, ref, set, push, serverTimestamp, onValue, update };

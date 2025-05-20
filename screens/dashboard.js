@@ -1,168 +1,162 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons'; // Import icons
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { db, ref, onValue } from '../firebaseConfig';
+import BottomTabs from '../components/bottomTabs';
+import { useAuth } from '../AuthContext';  
 
-
-const projects = [
-  { id: 1, title: 'GEHISTO Video', progress: 75, deadline: '2025-05-05' },
-  { id: 2, title: 'GEFIL02 Whole Paper', progress: 40, deadline: '2025-04-28' },
-  { id: 3, title: 'CSPL System', progress: 10, deadline: '2025-05-01' },
-  { id: 4, title: 'ITECC06 System', progress: 10, deadline: '2025-05-10' },
-];
+const sanitizeEmail = (email) => email.replace(/[@.]/g, '_');
 
 export default function Dashboard() {
-    const navigation = useNavigation();
+  const navigation = useNavigation();
+  const { email } = useAuth(); 
+  const sanitizedEmail = sanitizeEmail(email);  
+
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [pendingTasks, setPendingTasks] = useState(0);
+
+  useEffect(() => {
+    const projectsRef = ref(db, `users/${sanitizedEmail}/projects`);
+    onValue(projectsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const loadedProjects = Object.entries(data).map(([id, value]) => {
+          const subtasks = value.subtasks || [];
+          const completed = subtasks.filter((t) => t.isCompleted).length;
+          const total = subtasks.length || 1;
+          const progress = Math.round((completed / total) * 100);
+
+          return { id, ...value, subtasks, progress };
+        });
+
+        const totalPending = loadedProjects.reduce((acc, project) => {
+          return acc + project.subtasks.filter((t) => !t.isCompleted).length;
+        }, 0);
+
+        setProjects(loadedProjects);
+        setPendingTasks(totalPending);
+      }
+      setLoading(false);
+    });
+  }, [sanitizedEmail]); 
+
   return (
     <View style={styles.container}>
-      
-      {/* Top Bar */}
-      <View style={styles.topBar}>
-        <Image source={require('../assets/logo.png')} style={styles.logo} />
-        <Text style={styles.topBarTitle}>Dashboard</Text>
+      <View style={styles.banner}>
+        <Text style={styles.greeting}>Welcome back!</Text>
+        <Text style={styles.subtitle}>Here’s what’s happening today.</Text>
       </View>
 
-      {/* Scrollable Content */}
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {projects.map((project) => (
-          <View key={project.id} style={styles.card}>
-            <Text style={styles.title}>{project.title}</Text>
-            <Text style={styles.deadline}>Deadline: {project.deadline}</Text>
-            <View style={styles.progressBarBackground}>
-              <View style={[styles.progressBarFill, { width: `${project.progress}%` }]} />
+      {loading ? (
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" color="#10b981" />
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryNumber}>{projects.length}</Text>
+              <Text style={styles.summaryLabel}>Total Projects</Text>
             </View>
-            <TouchableOpacity style={styles.button}>
-              <Text style={styles.buttonText}>View Details</Text>
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryNumber}>{pendingTasks}</Text>
+              <Text style={styles.summaryLabel}>Pending Tasks</Text>
+            </View>
+          </View>
+
+          <Text style={styles.sectionTitle}>Project Highlights</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {projects.map((project) => (
+              <TouchableOpacity
+                key={project.id}
+                style={styles.projectCard}
+                onPress={() => navigation.navigate('ProjectDetails', { project })}
+              >
+                <Text style={styles.projectTitle}>{project.projectName}</Text>
+                <Text style={styles.projectDeadline}>Due: {project.deadline}</Text>
+                <View style={styles.progressBarBackground}>
+                  <View style={[styles.progressBarFill, { width: `${project.progress}%` }]} />
+                </View>
+                <Text style={styles.projectProgress}>{project.progress}% Complete</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          <View style={styles.actionCard}>
+            <Text style={styles.actionText}>Need to start a new project?</Text>
+            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Add Project')}>
+              <Text style={styles.actionButtonText}>Create Now</Text>
             </TouchableOpacity>
           </View>
-        ))}
-      </ScrollView>
-
-      {/* Bottom Navigation Bar */}
-      <View style={styles.bottomBar}>
-              <TouchableOpacity style={styles.bottomButton} onPress={() => navigation.navigate('Dashboard')}>
-                <Ionicons name="home" size={24} color="#00a568" />
-                <Text style={styles.bottomButtonText}>Dashboard</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.bottomButton} onPress={() => navigation.navigate('My Projects')}>
-                <Ionicons name="list" size={24} color="#6b7280" />
-                <Text style={styles.bottomButtonText}>My Projects</Text>
-              </TouchableOpacity>
-      
-              {/* Centered "+" Button */}
-              <TouchableOpacity style={styles.centerButton} >
-                <Ionicons name="add" size={30} color="#ffffff" />
-              </TouchableOpacity>
-      
-              <TouchableOpacity style={styles.bottomButton} onPress={() => navigation.navigate('Progress Report')}>
-                <Ionicons name="bar-chart" size={24} color="#6b7280" />
-                <Text style={styles.bottomButtonText}>Progress Report</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.bottomButton} onPress={() => navigation.navigate('Profile')}>
-                <Ionicons name="person" size={24} color="#6b7280" />
-                <Text style={styles.bottomButtonText}>Profile</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+        </ScrollView>
+      )}
+      <BottomTabs />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f3f4f6',
+  container: { flex: 1, backgroundColor: '#f9fafb' },
+  banner: {
+    backgroundColor: '#10b981',
+    padding: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
-  topBar: {
+  greeting: { fontSize: 22, color: '#ffffff', fontWeight: 'bold' },
+  subtitle: { fontSize: 16, color: '#e0f2f1', marginTop: 4 },
+  loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  scrollContent: { padding: 16, paddingBottom: 100 },
+  summaryRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    elevation: 8,
+    justifyContent: 'space-between',
+    marginVertical: 16,
   },
-  logo: {
-    width: 30,
-    height: 30,
-    marginRight: 8,
+  summaryCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 20,
+    flex: 1,
+    marginHorizontal: 5,
+    alignItems: 'center',
+    elevation: 4,
+  },
+  summaryNumber: { fontSize: 22, fontWeight: 'bold', color: '#10b981' },
+  summaryLabel: { fontSize: 14, color: '#6b7280', marginTop: 4 },
+  sectionTitle: { fontSize: 18, fontWeight: '600', marginBottom: 12, color: '#111827' },
+  projectCard: {
+    backgroundColor: '#ffffff',
+    padding: 16,
+    borderRadius: 16,
+    marginRight: 12,
+    width: 220,
+    elevation: 3,
+  },
+  projectTitle: { fontSize: 16, fontWeight: '600', marginBottom: 8 },
+  projectDeadline: { fontSize: 13, color: '#6b7280', marginBottom: 6 },
+  progressBarBackground: {
+    height: 8,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginVertical: 6,
+  },
+  progressBarFill: { height: 8, backgroundColor: '#34d399' },
+  projectProgress: { fontSize: 12, color: '#6b7280' },
+  actionCard: {
+    backgroundColor: '#d1fae5',
+    padding: 20,
+    borderRadius: 12,
+    alignItems: 'center',
     marginTop: 20,
   },
-  topBarTitle: {
-    color: '#333',
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginTop: 15,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 100,
-  },
-  card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 10,
-  },
-  deadline: {
-    color: '#6b7280',
-    marginBottom: 8,
-  },
-  progressBarBackground: {
-    height: 10,
-    backgroundColor: '#e5e7eb',
-    borderRadius: 5,
-    overflow: 'hidden',
-    marginBottom: 16,
-  },
-  progressBarFill: {
-    height: 10,
-    backgroundColor: '#85d1b2',
-  },
-  button: {
-    backgroundColor: '#00a568',
+  actionText: { fontSize: 16, color: '#065f46', marginBottom: 10 },
+  actionButton: {
+    backgroundColor: '#059669',
     paddingVertical: 10,
+    paddingHorizontal: 20,
     borderRadius: 8,
-    alignItems: 'center',
   },
-  buttonText: {
-    color: '#ffffff',
-    fontWeight: 'bold',
-  },
-  bottomBar: {
-    flexDirection: 'row',
-    backgroundColor: '#ffffff',
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-    justifyContent: 'space-around',
-  },
-  bottomButton: {
-    alignItems: 'center',
-  },
-  bottomButtonText: {
-    color: '#6b7280',
-    fontSize: 12,
-    marginTop: 4,
-  },
-  centerButton: {
-    backgroundColor: '#00a568',
-    borderRadius: 50,
-    height: 60,
-    width: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'absolute',
-    bottom: 25, // Adjust to ensure it sits above the other buttons
-    left: '50%',
-    transform: [{ translateX: -30 }], // Centers the button
-    elevation: 8,
-  },
+  actionButtonText: { color: '#ffffff', fontWeight: 'bold' },
 });

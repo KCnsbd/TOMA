@@ -2,32 +2,79 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
+  StyleSheet,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   Alert,
   FlatList,
-  ScrollView,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { getDatabase, ref, push } from 'firebase/database';
-import { firebaseApp } from '../firebaseConfig';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { db } from '../firebaseConfig';
+import { ref, update, remove } from 'firebase/database';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import { useAuth } from '../AuthContext'; 
 
-export default function AddProject() {
+const sanitizeEmail = (email) => email.replace(/[@.]/g, '_');
+
+export default function ProjectDetails() {
   const navigation = useNavigation();
-  const db = getDatabase(firebaseApp);
+  const route = useRoute();
+  const { project } = route.params;
+  
+    const { email } = useAuth(); 
+    
+    const sanitizedEmail = sanitizeEmail(email);
+  const projectRefPath = `users/${sanitizedEmail}/projects/${project.id}`;
+  const projectRef = ref(db, projectRefPath);
 
-  const [projectName, setProjectName] = useState('');
-  const [deadline, setDeadline] = useState('');
-  const [subtasks, setSubtasks] = useState([]);
+  const [projectName, setProjectName] = useState(project.projectName);
+  const [deadline, setDeadline] = useState(project.deadline);
+  const [subtasks, setSubtasks] = useState(project.subtasks || []);
   const [newSubtask, setNewSubtask] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const calculateProgress = (taskList) => {
     const completed = taskList.filter((task) => task.isCompleted).length;
     const total = taskList.length || 1;
     return Math.round((completed / total) * 100);
+  };
+
+  const handleUpdateProject = async () => {
+    try {
+      setIsUpdating(true);
+      const updatedProgress = calculateProgress(subtasks);
+      await update(projectRef, {
+        projectName,
+        deadline,
+        subtasks,
+        progress: updatedProgress,
+      });
+      Alert.alert('Success', 'Project updated successfully');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update project');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDeleteProject = async () => {
+    Alert.alert('Delete Project', 'Are you sure?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await remove(projectRef);
+            Alert.alert('Deleted', 'Project removed');
+            navigation.goBack();
+          } catch (err) {
+            console.error('Delete error:', err);
+            Alert.alert('Error', `Failed to delete: ${err.message}`);
+          }
+        },
+      },
+    ]);
   };
 
   const handleAddSubtask = () => {
@@ -52,40 +99,13 @@ export default function AddProject() {
     setSubtasks(subtasks.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = async () => {
-    if (!projectName || !deadline) {
-      Alert.alert('Error', 'Please fill in all required fields.');
-      return;
-    }
-    try {
-      setIsSubmitting(true);
-      const userKey = 'consebidokeana_gmail_com'; // Replace with dynamic user ID
-      const projectRef = ref(db, `users/${userKey}/projects`);
-
-      const newProject = {
-        projectName,
-        deadline,
-        subtasks,
-        progress: calculateProgress(subtasks),
-      };
-
-      await push(projectRef, newProject);
-      Alert.alert('Success', 'Project added successfully!');
-      navigation.goBack();
-    } catch (error) {
-      Alert.alert('Error', 'Could not add project.');
-      console.error(error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const progress = calculateProgress(subtasks);
 
   return (
     <View style={styles.container}>
+      {/* Top Bar with Close Button */}
       <View style={styles.topBar}>
-        <Text style={styles.heading}>New Project</Text>
+        <Text style={styles.heading}>Project Details</Text>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeBtn}>
           <Icon name="times" size={24} color="#333" />
         </TouchableOpacity>
@@ -147,10 +167,14 @@ export default function AddProject() {
 
       <TouchableOpacity
         style={[styles.button, styles.saveButton]}
-        onPress={handleSubmit}
-        disabled={isSubmitting}
+        onPress={handleUpdateProject}
+        disabled={isUpdating}
       >
-        <Text style={styles.buttonText}>{isSubmitting ? 'Submitting...' : 'Submit Project'}</Text>
+        <Text style={styles.buttonText}>{isUpdating ? 'Saving...' : 'Save Changes'}</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={[styles.button, styles.deleteButton]} onPress={handleDeleteProject}>
+        <Text style={styles.buttonText}>Delete Project</Text>
       </TouchableOpacity>
     </View>
   );
@@ -158,12 +182,7 @@ export default function AddProject() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f7f8f9', padding: 20 },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
   heading: { fontSize: 22, fontWeight: 'bold', color: '#333' },
   closeBtn: { padding: 8 },
   label: { fontSize: 16, color: '#333', marginBottom: 6 },
@@ -221,4 +240,5 @@ const styles = StyleSheet.create({
   },
   buttonText: { color: '#fff', fontWeight: 'bold' },
   saveButton: { backgroundColor: '#00a568' },
+  deleteButton: { backgroundColor: '#e11d48' },
 });

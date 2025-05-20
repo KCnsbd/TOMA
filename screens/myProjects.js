@@ -1,17 +1,12 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons'; // Import icons
-import { useNavigation } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { db, ref, onValue } from '../firebaseConfig';
+import BottomTabs from '../components/bottomTabs';
+import { useAuth } from '../AuthContext'; 
 
+const sanitizeEmail = (email) => email.replace(/[@.]/g, '_');
 
-const projects = [
-  { id: 1, title: 'GEHISTO Video', progress: 75, deadline: '2025-05-05' },
-  { id: 2, title: 'GEFIL02 Whole Paper', progress: 40, deadline: '2025-04-28' },
-  { id: 3, title: 'CSPL System', progress: 10, deadline: '2025-05-01' },
-  { id: 4, title: 'ITECC06 System', progress: 100, deadline: '2025-05-10' },
-];
-
-// Function to determine the project status
 const getStatus = (progress) => {
   if (progress === 100) return 'done';
   if (progress > 0) return 'in progress';
@@ -19,97 +14,120 @@ const getStatus = (progress) => {
 };
 
 export default function MyProjects() {
-    const navigation = useNavigation();
+  const navigation = useNavigation();
+  const route = useRoute();
+  const { email } = useAuth(); 
+
+  const sanitizedEmail = sanitizeEmail(email);
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const projectsRef = ref(db, `users/${sanitizedEmail}/projects`);
+    const unsubscribe = onValue(projectsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const loadedProjects = Object.entries(data).map(([id, value]) => {
+          const subtasks = value.subtasks || [];
+          const completed = subtasks.filter((t) => t.isCompleted).length;
+          const total = subtasks.length || 1;
+          const progress = Math.round((completed / total) * 100);
+
+          return {
+            id,
+            ...value,
+            subtasks,
+            progress,
+          };
+        });
+        setProjects(loadedProjects);
+      } else {
+        setProjects([]);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [sanitizedEmail]);
+
   return (
     <View style={styles.container}>
-      
-      {/* Top Bar */}
       <View style={styles.topBar}>
-        <Image source={require('../assets/logo.png')} style={styles.logo} />
         <Text style={styles.topBarTitle}>My Projects</Text>
       </View>
 
-      {/* Scrollable Content */}
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        
-        {/* Project Categories */}
-        {['done', 'in progress', 'to-do'].map((status) => (
-          <View key={status} style={styles.statusSection}>
-            <Text style={styles.statusTitle}>{status.charAt(0).toUpperCase() + status.slice(1)}</Text>
-            
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-              {projects
-                .filter((project) => getStatus(project.progress) === status)
-                .map((project) => (
-                  <View key={project.id} style={styles.card}>
-                    <Text style={styles.title}>{project.title}</Text>
-                    <Text style={styles.deadline}>Deadline: {project.deadline}</Text>
-                    <View style={styles.progressBarBackground}>
-                      <View style={[styles.progressBarFill, { width: `${project.progress}%` }]} />
-                    </View>
-                    <TouchableOpacity style={styles.button}>
-                      <Text style={styles.buttonText}>View Details</Text>
-                    </TouchableOpacity>
-                  </View>
-                ))}
-            </ScrollView>
-          </View>
-        ))}
-      </ScrollView>
+      {loading ? (
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" color="#10b981" />
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          {['to-do', 'in progress', 'done'].map((status) => {
+            const filtered = projects.filter((p) => getStatus(p.progress) === status);
 
-      {/* Bottom Navigation Bar */}
-      <View style={styles.bottomBar}>
-              <TouchableOpacity style={styles.bottomButton} onPress={() => navigation.navigate('Dashboard')}>
-                <Ionicons name="home" size={24} color="#6b7280" />
-                <Text style={styles.bottomButtonText}>Dashboard</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.bottomButton} onPress={() => navigation.navigate('My Projects')}>
-                <Ionicons name="list" size={24} color="#00a568" />
-                <Text style={styles.bottomButtonText}>My Projects</Text>
-              </TouchableOpacity>
-      
-              {/* Centered "+" Button */}
-              <TouchableOpacity style={styles.centerButton} >
-                <Ionicons name="add" size={30} color="#ffffff" />
-              </TouchableOpacity>
-      
-              <TouchableOpacity style={styles.bottomButton} onPress={() => navigation.navigate('Progress Report')}>
-                <Ionicons name="bar-chart" size={24} color="#6b7280" />
-                <Text style={styles.bottomButtonText}>Progress Report</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.bottomButton} onPress={() => navigation.navigate('Profile')}>
-                <Ionicons name="person" size={24} color="#6b7280" />
-                <Text style={styles.bottomButtonText}>Profile</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+            return (
+              <View key={status} style={styles.statusSection}>
+                <Text style={styles.statusTitle}>
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                </Text>
+
+                {filtered.length > 0 ? (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+                    {filtered.map((project) => (
+                      <View key={project.id} style={styles.card}>
+                        <Text style={styles.title}>{project.projectName}</Text>
+                        <Text style={styles.deadline}>Deadline: {project.deadline}</Text>
+                        <View style={styles.progressBarBackground}>
+                          <View style={[styles.progressBarFill, { width: `${project.progress}%` }]} />
+                        </View>
+                        <Text style={styles.progressText}>{project.progress}% Complete</Text>
+                        <TouchableOpacity
+                          style={styles.button}
+                          onPress={() => navigation.navigate('ProjectDetails', { project })}
+                        >
+                          <Text style={styles.buttonText}>View Details</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </ScrollView>
+                ) : (
+                  <Text style={styles.noProjects}>No projects in this category.</Text>
+                )}
+              </View>
+            );
+          })}
+        </ScrollView>
+      )}
+
+      <BottomTabs />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#f7f8f9',
   },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#ffffff',
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingTop: 25,
+    paddingBottom: 10,
     elevation: 8,
-  },
-  logo: {
-    width: 30,
-    height: 30,
-    marginRight: 8,
-    marginTop: 20,
   },
   topBarTitle: {
     color: '#333',
     fontSize: 20,
     fontWeight: 'bold',
-    marginTop: 15,
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollContent: {
     padding: 16,
@@ -121,7 +139,7 @@ const styles = StyleSheet.create({
   statusTitle: {
     fontSize: 18,
     fontWeight: '700',
-    marginBottom: 8,
+    marginBottom: 12,
     textTransform: 'capitalize',
     color: '#333',
   },
@@ -131,36 +149,44 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#ffffff',
     borderRadius: 16,
-    padding: 16,
-    marginRight: 16, // Space between cards
-    width: 250, // Width of each card
+    padding: 20,
+    marginRight: 16,
+    width: 240,
     shadowColor: '#000',
     shadowOpacity: 0.1,
-    shadowRadius: 10,
+    shadowRadius: 15,
     elevation: 5,
+    overflow: 'hidden',
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
-    marginBottom: 10,
+    marginBottom: 8,
+    color: '#333',
   },
   deadline: {
-    color: '#6b7280',
+    color: '#9ca3af',
     marginBottom: 8,
   },
   progressBarBackground: {
-    height: 10,
+    height: 12,
     backgroundColor: '#e5e7eb',
-    borderRadius: 5,
+    borderRadius: 8,
     overflow: 'hidden',
-    marginBottom: 16,
+    marginBottom: 6,
   },
   progressBarFill: {
-    height: 10,
-    backgroundColor: '#85d1b2',
+    height: 12,
+    backgroundColor: '#34d399',
+    borderRadius: 8,
+  },
+  progressText: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginBottom: 12,
   },
   button: {
-    backgroundColor: '#00a568',
+    backgroundColor: '#059669',
     paddingVertical: 10,
     borderRadius: 8,
     alignItems: 'center',
@@ -169,33 +195,11 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: 'bold',
   },
-  bottomBar: {
-    flexDirection: 'row',
-    backgroundColor: '#ffffff',
+  noProjects: {
+    fontSize: 14,
+    color: '#9ca3af',
+    paddingHorizontal: 4,
     paddingVertical: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-    justifyContent: 'space-around',
-  },
-  bottomButton: {
-    alignItems: 'center',
-  },
-  bottomButtonText: {
-    color: '#6b7280',
-    fontSize: 12,
-    marginTop: 4,
-  },
-  centerButton: {
-    backgroundColor: '#00a568',
-    borderRadius: 50,
-    height: 60,
-    width: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'absolute',
-    bottom: 25, // Adjust to ensure it sits above the other buttons
-    left: '50%',
-    transform: [{ translateX: -30 }], // Centers the button
-    elevation: 8,
+    fontStyle: 'italic',
   },
 });
