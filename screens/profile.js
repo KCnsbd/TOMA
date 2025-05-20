@@ -1,15 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
-  SafeAreaView,
-  ScrollView,
-  Alert,
-  TextInput,
-} from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, SafeAreaView, ScrollView, Alert, TextInput,} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import BottomTabs from '../components/bottomTabs';
 import { useNavigation } from '@react-navigation/native';
@@ -103,7 +93,7 @@ export default function Profile() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Profile Header */}
+       
         <View style={styles.header}>
   <View style={styles.profileImage}>
     <Text style={styles.initialsText}>
@@ -148,7 +138,7 @@ export default function Profile() {
 </View>
 
 
-        {/* Personal Info Card */}
+        
         <View style={styles.infoCard}>
           <Text style={styles.sectionTitle}>Personal Info</Text>
           {['age', 'location', 'specialty'].map((field, index) => (
@@ -170,7 +160,7 @@ export default function Profile() {
           ))}
         </View>
 
-        {/* About Me Card */}
+       
         <View style={styles.infoCard}>
           <Text style={styles.sectionTitle}>About Me</Text>
           {isEditing ? (
@@ -189,7 +179,7 @@ export default function Profile() {
           )}
         </View>
 
-        {/* Buttons */}
+       
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={styles.button}

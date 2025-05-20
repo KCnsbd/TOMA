@@ -24,11 +24,7 @@ const BottomTabs = () => {
           color={isActive('Dashboard') ? activeColor : inactiveColor}
         />
         <Text
-          style={[
-            styles.bottomButtonText,
-            isActive('Dashboard') && styles.activeText,
-          ]}
-        >
+        style={[styles.bottomButtonText, isActive('Dashboard') && styles.activeText,]}>
           Dashboard
         </Text>
       </TouchableOpacity>
@@ -52,7 +48,6 @@ const BottomTabs = () => {
         </Text>
       </TouchableOpacity>
 
-      {/* Centered "+" Button */}
       <TouchableOpacity
         style={styles.centerButton}
         onPress={() => navigation.navigate('Add Project')}
@@ -70,11 +65,7 @@ const BottomTabs = () => {
           color={isActive('Progress Report') ? activeColor : inactiveColor}
         />
         <Text
-          style={[
-            styles.bottomButtonText,
-            isActive('Progress Report') && styles.activeText,
-          ]}
-        >
+          style={[styles.bottomButtonText, isActive('Progress Report') && styles.activeText,]}>
           Progress Report
         </Text>
       </TouchableOpacity>
@@ -89,11 +80,7 @@ const BottomTabs = () => {
           color={isActive('Profile') ? activeColor : inactiveColor}
         />
         <Text
-          style={[
-            styles.bottomButtonText,
-            isActive('Profile') && styles.activeText,
-          ]}
-        >
+          style={[styles.bottomButtonText, isActive('Profile') && styles.activeText,]}>
           Profile
         </Text>
       </TouchableOpacity>

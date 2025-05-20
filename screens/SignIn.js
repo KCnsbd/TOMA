@@ -3,11 +3,11 @@ import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, Image } fro
 import { db } from '../firebaseConfig';
 import { ref, get } from 'firebase/database';
 import { useNavigation } from '@react-navigation/native';
-import { useAuth } from '../AuthContext'; // Import the useAuth hook
+import { useAuth } from '../AuthContext'; 
 
 const LoginScreen = () => {
   const navigation = useNavigation();
-  const { setEmail } = useAuth(); // Access the setEmail function from context
+  const { setEmail } = useAuth(); 
   const [email, setEmailState] = useState('');
   const [password, setPassword] = useState('');
 
@@ -24,8 +24,8 @@ const LoginScreen = () => {
       if (snapshot.exists()) {
         const userData = snapshot.val();
         if (userData.password === password) {
-          setEmail(email); // Store the email in global state using context
-          navigation.navigate('Dashboard'); // No need to pass email explicitly here
+          setEmail(email); 
+          navigation.navigate('Dashboard');
         } else {
           Alert.alert('Wrong password ❌', 'Please try again.');
         }

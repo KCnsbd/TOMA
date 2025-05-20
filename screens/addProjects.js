@@ -1,14 +1,5 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  FlatList,
-  ScrollView,
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, FlatList, ScrollView,} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { getDatabase, ref, push } from 'firebase/database';
 import { firebaseApp } from '../firebaseConfig';
@@ -59,7 +50,7 @@ export default function AddProject() {
     }
     try {
       setIsSubmitting(true);
-      const userKey = 'consebidokeana_gmail_com'; // Replace with dynamic user ID
+      const userKey = 'consebidokeana_gmail_com';
       const projectRef = ref(db, `users/${userKey}/projects`);
 
       const newProject = {

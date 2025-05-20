@@ -88,7 +88,7 @@ export default function ProgressReport() {
           </View>
         ) : (
           <>
-            {/* Overview Numbers */}
+            
             <Text style={styles.reportTitle}>Analytics Summary</Text>
             <View style={styles.analyticsBox}>
               <Text>Total Projects: {projects.length}</Text>
@@ -98,7 +98,6 @@ export default function ProgressReport() {
               <Text>Average Progress: {avgProgress}%</Text>
             </View>
 
-            {/* Pie Chart */}
             <Text style={styles.reportTitle}>Project Status Distribution</Text>
             <View style={styles.chartContainer}>
               <PieChart
@@ -112,7 +111,6 @@ export default function ProgressReport() {
               />
             </View>
 
-            {/* Bar Chart */}
             <Text style={styles.reportTitle}>Subtasks Completion Status</Text>
             <View style={styles.chartContainer}>
               <BarChart
@@ -125,7 +123,6 @@ export default function ProgressReport() {
               />
             </View>
 
-            {/* Average Progress Bar */}
             <Text style={styles.reportTitle}>Overall Progress</Text>
             <View style={styles.projectCard}>
               <Text style={styles.projectTitle}>Average Completion</Text>
@@ -135,7 +132,6 @@ export default function ProgressReport() {
               <Text style={styles.projectStatus}>{avgProgress}% done</Text>
             </View>
 
-            {/* Individual Project Cards */}
             <Text style={styles.reportTitle}>Projects Breakdown</Text>
             {projects.map((project) => (
               <View key={project.id} style={styles.projectCard}>

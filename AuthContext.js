@@ -1,7 +1,5 @@
-// AuthContext.js
 import React, { createContext, useState, useContext } from 'react';
 
-// Create a Context for email
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
@@ -14,5 +12,4 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// Custom hook to use the AuthContext
 export const useAuth = () => useContext(AuthContext);

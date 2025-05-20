@@ -1,13 +1,5 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  Alert,
-  FlatList,
-} from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, FlatList,} from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { db } from '../firebaseConfig';
 import { ref, update, remove } from 'firebase/database';
@@ -103,7 +95,6 @@ export default function ProjectDetails() {
 
   return (
     <View style={styles.container}>
-      {/* Top Bar with Close Button */}
       <View style={styles.topBar}>
         <Text style={styles.heading}>Project Details</Text>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeBtn}>

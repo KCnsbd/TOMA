@@ -9,7 +9,7 @@ import MyProjects from './screens/myProjects';
 import ProgressReport from './screens/progressReport'; 
 import Profile from './screens/profile'; 
 import ProjectDetails from './screens/projectDetails'; 
-import { AuthProvider } from './AuthContext'; // Adjust the path as necessary
+import { AuthProvider } from './AuthContext'; 
 
 const Stack = createStackNavigator();
 
